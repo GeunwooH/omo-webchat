@@ -23,6 +23,7 @@ import { mergeTranscriptItems } from "./useChatFrameState";
 import { sendErrorDetail } from "./useChatFrameHandler";
 import { useChatSession } from "./useChatSession";
 import { useUpdateDialog } from "./useUpdateDialog";
+import { promptHistoryFrom } from "./promptHistory";
 
 /** Every thinking level; an authoritative unknown value is still listed. */
 const THINKING_LEVELS: readonly string[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
@@ -93,6 +94,7 @@ export function ChatPane({
     ),
     [chat.messages, chat.notices, chat.historyStatus],
   );
+  const promptHistory = useMemo(() => promptHistoryFrom(chat.messages), [chat.messages]);
   const currentModel = chat.models.find((model) => `${model.provider}/${model.modelId}` === chat.currentModelKey);
   const imageSupported = currentModel ? (currentModel.input?.includes("image") ?? true) : true;
   const thinkingOptions = chat.thinkingLevel !== "" && !THINKING_LEVELS.includes(chat.thinkingLevel)
@@ -343,6 +345,7 @@ export function ChatPane({
           onSteer={chat.steer}
           onStop={chat.stop}
           {...(onNewChat ? { onNewChat } : {})}
+          history={promptHistory}
           provider={chatSession.provider}
           cwd={chatSession.cwd}
           imageSupported={imageSupported}

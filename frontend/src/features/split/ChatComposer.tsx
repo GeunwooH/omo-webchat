@@ -9,6 +9,7 @@ import { ChatComposerPalettes } from "./chatComposerPalettes";
 import { commandPrefix, detectCommandTrigger, matchCommands } from "./commandMatch";
 import { mergeCommands } from "./curatedCommands";
 import { detectFileTrigger, type FileMatch } from "./fileSearch";
+import { recallNext, recallPrevious, type PromptRecall, type RecallStep } from "./promptHistory";
 import type { ChatDraft, RecoveredChatDraft } from "./chatSessionTypes";
 import { useFileMention } from "./useFileMention";
 import { useImageAttachment } from "./useImageAttachment";
@@ -26,12 +27,16 @@ interface ChatComposerProps {
   readonly onSteer: (text: string) => boolean;
   readonly onStop: () => void;
   readonly onNewChat?: () => void;
+  /** Previously sent prompts, oldest first, for ArrowUp/ArrowDown recall. */
+  readonly history?: readonly string[];
   readonly provider: string;
   readonly cwd: string;
   readonly imageSupported?: boolean;
 }
 
-export function ChatComposer({ session, commands, running, disabled = false, retryDraft, onSubmit, onSteer, onStop, onNewChat, provider, cwd, imageSupported = true }: ChatComposerProps) {
+const NO_HISTORY: readonly string[] = [];
+
+export function ChatComposer({ session, commands, running, disabled = false, retryDraft, onSubmit, onSteer, onStop, onNewChat, history = NO_HISTORY, provider, cwd, imageSupported = true }: ChatComposerProps) {
   const { t } = useT();
   const { input, setInput, draftCommand, setDraftCommand, pendingImage, setPendingImage, restoreDraft } = useSessionDraft(session);
   const [paletteHidden, setPaletteHidden] = useState(false);
@@ -42,6 +47,10 @@ export function ChatComposer({ session, commands, running, disabled = false, ret
   const isTouch = useMediaQuery(TOUCH_QUERY);
   const { clear: clearImage, pick: pickImage, fileInputRef, isDragOver, dragHandlers } = useImageAttachment(pendingImage, setPendingImage);
   const [caret, setCaret] = useState(0);
+  // Recall position is per session and ends as soon as the user edits the
+  // recalled text, so a half-edited prompt is never overwritten by ArrowUp.
+  const recallRef = useRef<PromptRecall | null>(null);
+  useEffect(() => { recallRef.current = null; }, [session?.wsId, session?.id]);
   const fileId = useId();
   const fileListboxId = `${fileId}-file-listbox`, fileOptionIdPrefix = `${fileId}-file-option`;
   const fileMention = useFileMention(cwd, input, caret);
@@ -142,7 +151,29 @@ export function ChatComposer({ session, commands, running, disabled = false, ret
     focusAfter(inserted);
   };
 
+  const applyRecall = (step: RecallStep | null): boolean => {
+    if (!step) return false;
+    recallRef.current = step.recall;
+    setInput(step.input);
+    setDraftCommand(null);
+    // A recalled "/command" must not pop the palette over the transcript;
+    // the next keystroke (onInput) re-enables it as usual.
+    setPaletteHidden(true);
+    setActiveIndex(-1);
+    const at = step.input.length;
+    setCaret(at);
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(at, at);
+      }
+    });
+    return true;
+  };
+
   const resetInput = (): void => {
+    recallRef.current = null;
     setInput("");
     setDraftCommand(null);
     setCaret(0);
@@ -238,6 +269,7 @@ export function ChatComposer({ session, commands, running, disabled = false, ret
           sendLabel={t(running ? "chat.stop" : "chat.send")}
           onCaret={setCaret}
           onInput={(value, at) => {
+            recallRef.current = null;
             setInput(value);
             setDraftCommand(null);
             setCaret(at);
@@ -250,6 +282,10 @@ export function ChatComposer({ session, commands, running, disabled = false, ret
               setActiveIndex, setHidden: setPaletteHidden,
             },
             run: { running, onSteer: steer, onStop, onSubmit: submit },
+            history: {
+              onPrevious: () => applyRecall(recallPrevious(history, recallRef.current, input)),
+              onNext: () => applyRecall(recallNext(history, recallRef.current)),
+            },
             isTouch,
           })}
           onStop={onStop}

@@ -25,10 +25,19 @@ interface RunKeyboardState {
   readonly onSubmit: () => void;
 }
 
+interface HistoryKeyboardState {
+  /** Recall the previous / next sent prompt. Return true when the key was
+   *  consumed; false lets the caret move as usual (nothing to recall, or the
+   *  composer holds an unsent draft that recall must never overwrite). */
+  readonly onPrevious: () => boolean;
+  readonly onNext: () => boolean;
+}
+
 interface ChatComposerKeyboardContext {
   readonly file: FileKeyboardState;
   readonly command: CommandKeyboardState;
   readonly run: RunKeyboardState;
+  readonly history: HistoryKeyboardState;
   /** True on touch-first devices (soft keyboard), where Enter inserts a
    *  newline instead of sending. Not tied to viewport width: a narrow desktop
    *  window still has a physical keyboard. */
@@ -110,6 +119,13 @@ export function handleChatComposerKeyDown(
   if (event.key === "Escape" && context.run.running && !context.command.open) {
     event.preventDefault();
     context.run.onStop();
+    return;
+  }
+  // Shell-style recall. Both palettes had their turn above; a plain arrow is
+  // offered to history, which only claims it from an empty composer or while
+  // already browsing, so caret movement inside a typed draft is untouched.
+  if ((event.key === "ArrowUp" || event.key === "ArrowDown") && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) {
+    if (event.key === "ArrowUp" ? context.history.onPrevious() : context.history.onNext()) event.preventDefault();
     return;
   }
   if (
