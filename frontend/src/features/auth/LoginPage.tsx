@@ -31,9 +31,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="th-login">
       <div className="th-login-card">
-        <div className="th-login-brand">
-          {t("sidebar.nav.brand")}
-        </div>
         <h1 className="th-login-title">
           <img className="th-login-title-icon" src="/icon-192.png" alt="" />
           {t("login.title")}
@@ -48,6 +45,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         )}
 
         <form className="th-field" onSubmit={submit}>
+          {/* Password managers pair a credential with a username field. */}
+          <input type="text" name="username" autoComplete="username" value="omo-webchat" readOnly hidden />
           <label className="th-field-label" htmlFor="th-password">
             {t("login.password")}
           </label>
@@ -71,10 +70,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <button
             type="button"
             className="th-login-lang"
+            lang={lang === "ko" ? "en" : "ko"}
             onClick={() => setLang(lang === "ko" ? "en" : "ko")}
           >
             <IconGlobe size={12} />
-            {lang === "ko" ? "한국어" : "English"}
+            {lang === "ko" ? "English" : "한국어"}
           </button>
         </div>
       </div>
