@@ -66,6 +66,21 @@ describe("detectLang", () => {
 		vi.stubGlobal("navigator", { language });
 	}
 
+	it("selects the locale from an /en or /ko path prefix over the stored choice", () => {
+		window.localStorage.setItem("th-lang", "en");
+		window.history.replaceState(null, "", "/ko/login");
+		try {
+			expect(detectLang()).toBe("ko");
+			window.history.replaceState(null, "", "/en");
+			window.localStorage.setItem("th-lang", "ko");
+			expect(detectLang()).toBe("en");
+			window.history.replaceState(null, "", "/kor/login");
+			expect(detectLang()).toBe("ko");
+		} finally {
+			window.history.replaceState(null, "", "/");
+		}
+	});
+
 	it("prefers a stored en choice over a Korean navigator", () => {
 		window.localStorage.setItem("th-lang", "en");
 		stubNavigatorLanguage("ko-KR");

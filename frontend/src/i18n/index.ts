@@ -49,6 +49,9 @@ export function useDocumentLang(lang: Lang): void {
 const STORAGE_KEY = "th-lang";
 
 export function detectLang(): Lang {
+  // An explicit /en or /ko path prefix (e.g. /ko/login) selects the locale.
+  const prefix = /^\/(en|ko)(\/|$)/.exec(window.location.pathname)?.[1];
+  if (prefix === "en" || prefix === "ko") return prefix;
   const fallback = navigator.language.toLowerCase().startsWith("ko") ? "ko" : "en";
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
