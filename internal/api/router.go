@@ -3,6 +3,8 @@ package api
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -116,7 +118,7 @@ func (s *Server) Handler() http.Handler {
 
 	mux.Handle("/api/", s.sessions.Middleware(protected))
 	mux.Handle("/", s.staticHandler())
-	return mux
+	return securityHeaders(mux)
 }
 
 func (s *Server) staticHandler() http.Handler {
@@ -125,16 +127,29 @@ func (s *Server) staticHandler() http.Handler {
 		s.logger.Error("embedded frontend missing dist/", "err", err)
 		return http.NotFoundHandler()
 	}
+	etags := embeddedETags(sub)
 	fileServer := http.FileServer(http.FS(sub))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cleaned := path.Clean(strings.TrimPrefix(r.URL.Path, "/"))
-		if _, err := fs.Stat(sub, cleaned); err == nil {
+		if info, err := fs.Stat(sub, cleaned); err == nil {
+			if info.IsDir() && cleaned != "." {
+				// Never auto-index embedded build directories (e.g. /assets/).
+				notFound(w)
+				return
+			}
 			if strings.HasPrefix(cleaned, "assets/") {
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			} else {
 				w.Header().Set("Cache-Control", "no-cache")
 			}
+			if tag, ok := etags[cleaned]; ok {
+				w.Header().Set("ETag", tag)
+			}
 			fileServer.ServeHTTP(w, r)
+			return
+		}
+		if !isAppRoute(cleaned) {
+			notFound(w)
 			return
 		}
 		index, err := fs.ReadFile(sub, "index.html")
@@ -145,6 +160,72 @@ func (s *Server) staticHandler() http.Handler {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(index)
+	})
+}
+
+// isAppRoute reports whether a path that is not an embedded file is a route
+// the SPA renders: the root, /login and the locale-prefixed shells
+// (/en, /ko/login, ...).
+// Anything else, notably file-like misses (robots.txt, stale assets/*.js),
+// is a real 404 instead of the index document.
+func isAppRoute(cleaned string) bool {
+	if cleaned == "." || cleaned == "login" {
+		return true
+	}
+	first, rest, _ := strings.Cut(cleaned, "/")
+	if first != "en" && first != "ko" {
+		return false
+	}
+	return path.Ext(rest) == ""
+}
+
+func notFound(w http.ResponseWriter) {
+	// no-store keeps CDNs from caching a miss under an asset URL.
+	w.Header().Set("Cache-Control", "no-store")
+	http.Error(w, "404 page not found", http.StatusNotFound)
+}
+
+// embeddedETags hashes every embedded file once so repeat visits revalidate
+// with 304 (embed.FS carries no modification times).
+func embeddedETags(sub fs.FS) map[string]string {
+	tags := make(map[string]string)
+	_ = fs.WalkDir(sub, ".", func(name string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		data, err := fs.ReadFile(sub, name)
+		if err != nil {
+			return nil
+		}
+		sum := sha256.Sum256(data)
+		tags[name] = `"` + hex.EncodeToString(sum[:16]) + `"`
+		return nil
+	})
+	return tags
+}
+
+// securityHeaders sets baseline browser hardening headers on every response.
+// Behind a TLS-terminating proxy that reports X-Forwarded-Proto, plain-HTTP
+// requests are redirected to HTTPS and HTTPS responses carry HSTS. Without
+// that header (direct loopback use) nothing changes.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Header.Get("X-Forwarded-Proto") {
+		case "http":
+			if r.Host != "" && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
+				http.Redirect(w, r, "https://"+r.Host+r.URL.RequestURI(), http.StatusPermanentRedirect)
+				return
+			}
+		case "https":
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+		}
+		h := w.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+		h.Set("Referrer-Policy", "same-origin")
+		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		next.ServeHTTP(w, r)
 	})
 }
 
