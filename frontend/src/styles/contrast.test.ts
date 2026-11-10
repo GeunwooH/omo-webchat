@@ -599,7 +599,6 @@ describe("token contrast contracts (WCAG 2.1)", () => {
   // list cannot silently rot. Readable prose, including expanded reasoning,
   // is not metadata and is not listed.
   const FAINT_METADATA_ALLOWLIST: Readonly<Record<string, string>> = {
-    ".th-login-foot": "login footer hint line",
     ".th-input::placeholder": "input placeholder hint",
     ".th-activity-bar-sep": "activity bar middot separator glyph",
     ".th-activity-resize::after": "activity panel resize grip pill (non-text affordance, >=3:1 at rest)",
@@ -705,7 +704,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
       [
         ".th-tree-source { color: var(--th-faint); }",
         ".th-tree-chevron { border: 1px solid var(--th-faint); }",
-        ".th-login-foot { color: var( --th-faint ); }",
+        ".th-tool-sep { color: var( --th-faint ); }",
         ".th-input::placeholder { color: var(--th-faint, currentColor); }",
       ].join("\n"),
       "metadata.css",
@@ -713,7 +712,7 @@ describe("token contrast contracts (WCAG 2.1)", () => {
     expect(usages.map((usage) => usage.selector)).toEqual([
       ".th-tree-source",
       ".th-tree-chevron",
-      ".th-login-foot",
+      ".th-tool-sep",
       ".th-input::placeholder",
     ]);
     expect(faintUsageViolations(usages)).toEqual([]);

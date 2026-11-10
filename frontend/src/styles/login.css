@@ -1,8 +1,11 @@
 .th-login {
   height: 100%;
   display: flex;
-  align-items: center;
+  /* safe: a card taller than a short viewport starts at the top and the
+     canvas scrolls instead of clipping both ends. */
+  align-items: safe center;
   justify-content: center;
+  overflow-y: auto;
   padding: var(--th-space-6);
   background: var(--th-bg);
 }
@@ -28,17 +31,6 @@
 /* E23: the password input uses the same visible edge as its card. */
 .th-login-card .th-input {
   border-color: var(--th-border-visible);
-}
-
-.th-login-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--th-space-2);
-  font-size: var(--th-type-label-size);
-  font-weight: var(--th-weight-emphasize);
-  line-height: var(--th-type-label-line);
-  letter-spacing: var(--th-type-label-tracking);
-  color: var(--th-muted);
 }
 
 .th-login-title {
@@ -71,11 +63,13 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--th-space-2);
-  font-size: var(--th-type-micro-size);
+  /* Readable prose (session expiry notice), so the muted tier at label
+     size rather than the metadata-only faint/micro tier. */
+  font-size: var(--th-type-label-size);
   font-weight: var(--th-weight-emphasize);
-  line-height: var(--th-type-micro-line);
-  letter-spacing: var(--th-type-micro-tracking);
-  color: var(--th-faint);
+  line-height: var(--th-type-label-line);
+  letter-spacing: var(--th-type-label-tracking);
+  color: var(--th-muted);
 }
 
 .th-login-lang {
@@ -94,6 +88,24 @@
   border-radius: var(--th-radius-pill);
   transition: color var(--th-dur-fast) var(--th-ease),
     background-color var(--th-dur-fast) var(--th-ease);
+}
+
+.th-login-lang:focus-visible {
+  outline: 2px solid var(--th-accent);
+  outline-offset: 2px;
+}
+
+/* Touch screens get 44px hit targets on the auth surface. */
+@media (pointer: coarse) {
+  .th-login-card .th-input,
+  .th-login-card .th-btn,
+  .th-login-lang {
+    min-height: 44px;
+  }
+
+  .th-login-lang {
+    padding-inline: var(--th-space-3);
+  }
 }
 
 .th-login-lang:hover {
