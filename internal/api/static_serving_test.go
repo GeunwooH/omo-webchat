@@ -49,7 +49,7 @@ func TestStaticRevalidatesAppShellWithETag(t *testing.T) {
 	h := newStaticTestServer()
 	first := serveStatic(t, h, "/ko/login", nil)
 	tag := first.Header().Get("ETag")
-	if tag == "" || first.Code != http.StatusOK {
+	if !strings.HasPrefix(tag, `W/"`) || first.Code != http.StatusOK {
 		t.Fatalf("shell: status %d etag %q, want 200 with an ETag", first.Code, tag)
 	}
 	again := serveStatic(t, h, "/ko/login", func(r *http.Request) { r.Header.Set("If-None-Match", tag) })

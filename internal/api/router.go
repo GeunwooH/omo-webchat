@@ -164,10 +164,11 @@ func (s *Server) staticHandler() http.Handler {
 			index = bytes.Replace(index, []byte(`<html lang="en">`), []byte(`<html lang="ko">`), 1)
 		}
 		sum := sha256.Sum256(index)
-		tag := `"` + hex.EncodeToString(sum[:16]) + `"`
+		// Weak validator: the edge compresses HTML and drops strong ETags.
+		tag := `W/"` + hex.EncodeToString(sum[:16]) + `"`
 		w.Header().Set("ETag", tag)
 		w.Header().Set("Cache-Control", "no-cache")
-		if r.Header.Get("If-None-Match") == tag {
+		if inm := r.Header.Get("If-None-Match"); inm == tag || inm == strings.TrimPrefix(tag, "W/") {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
