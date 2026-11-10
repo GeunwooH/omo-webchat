@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   detectLang,
   I18nContext,
+  localeSwitchPath,
   persistLang,
   translate,
   useDocumentLang,
@@ -38,6 +39,9 @@ export function useAppConfig(): AppConfigValue {
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
     persistLang(next);
+    const { pathname, search, hash } = window.location;
+    const switched = localeSwitchPath(pathname, next);
+    if (switched !== pathname) window.history.replaceState(window.history.state, "", switched + search + hash);
   }, []);
   const [font, setFontState] = useState<FontId>(detectFont);
   const setFont = useCallback((next: FontId) => {

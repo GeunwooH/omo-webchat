@@ -61,6 +61,12 @@ export function detectLang(): Lang {
   }
 }
 
+// Swap an explicit /en or /ko path prefix so the URL keeps the chosen locale
+// across reloads. Paths without a prefix are returned unchanged.
+export function localeSwitchPath(pathname: string, lang: Lang): string {
+  return pathname.replace(/^\/(en|ko)(?=\/|$)/, "/" + lang);
+}
+
 export function persistLang(lang: Lang): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, lang);

@@ -45,6 +45,22 @@ func TestStaticServesDocumentLanguageForLocalePrefix(t *testing.T) {
 	}
 }
 
+func TestStaticRevalidatesAppShellWithETag(t *testing.T) {
+	h := newStaticTestServer()
+	first := serveStatic(t, h, "/ko/login", nil)
+	tag := first.Header().Get("ETag")
+	if tag == "" || first.Code != http.StatusOK {
+		t.Fatalf("shell: status %d etag %q, want 200 with an ETag", first.Code, tag)
+	}
+	again := serveStatic(t, h, "/ko/login", func(r *http.Request) { r.Header.Set("If-None-Match", tag) })
+	if again.Code != http.StatusNotModified || again.Body.Len() != 0 {
+		t.Fatalf("revalidation: status %d body %d bytes, want empty 304", again.Code, again.Body.Len())
+	}
+	if en := serveStatic(t, h, "/en/login", nil).Header().Get("ETag"); en == tag {
+		t.Fatalf("en and ko shells share ETag %q, want distinct tags for distinct bodies", en)
+	}
+}
+
 func TestStaticReturnsRealNotFoundForMisses(t *testing.T) {
 	h := newStaticTestServer()
 	for _, target := range []string{"/robots.txt", "/assets/missing-abc123.js", "/assets/", "/assets", "/nonexistent", "/ko/missing.js"} {
