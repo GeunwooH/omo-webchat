@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#17181b" />
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" href="./favicon-32x32.png" type="image/png" sizes="32x32" />
-  <link rel="icon" href="./favicon-16x16.png" type="image/png" sizes="16x16" />
-  <link rel="icon" href="./favicon.ico" type="image/x-icon" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" sizes="180x180" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+  <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="omo-webchat" />
@@ -17,8 +18,13 @@
     // Set the document language before first paint (module scripts are
     // deferred, so without this the pre-hydration document would keep the
     // static fallback). Mirrors the detectLang precedence in src/i18n:
-    // stored choice -> Korean navigator -> en.
+    // /en or /ko path prefix -> stored choice -> Korean navigator -> en.
     (function () {
+      var prefix = /^\/(en|ko)(\/|$)/.exec(window.location.pathname);
+      if (prefix) {
+        document.documentElement.lang = prefix[1];
+        return;
+      }
       var stored = null;
       try {
         stored = window.localStorage.getItem("th-lang");
@@ -133,6 +139,7 @@
 </head>
 <body>
   <div id="root"></div>
+  <noscript>omo-webchat needs JavaScript enabled. / omo-webchat을 사용하려면 JavaScript를 켜 주세요.</noscript>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

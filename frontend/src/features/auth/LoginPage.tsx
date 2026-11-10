@@ -35,7 +35,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           {t("sidebar.nav.brand")}
         </div>
         <h1 className="th-login-title">
-          <img className="th-login-title-icon" src="./icon-192.png" alt="" />
+          <img className="th-login-title-icon" src="/icon-192.png" alt="" />
           {t("login.title")}
         </h1>
         <p className="th-login-sub">{t("login.subtitle")}</p>
