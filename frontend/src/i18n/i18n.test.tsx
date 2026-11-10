@@ -1,7 +1,7 @@
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi, assert } from "vitest";
-import { detectLang, persistLang, useDocumentLang } from "./index";
+import { detectLang, localeSwitchPath, persistLang, useDocumentLang } from "./index";
 import type { Lang } from "./index";
 
 import pageHtml from "../../index.html?raw";
@@ -53,6 +53,17 @@ describe("pre-hydration document language (index.html inline script)", () => {
 
 	it("defaults to English before hydration for a non-Korean navigator", () => {
 		expect(evalPreHydrationLangScript({ navigatorLanguage: "en-US" })).toBe("en");
+	});
+});
+
+describe("localeSwitchPath", () => {
+	it("swaps an explicit locale prefix so a reload keeps the chosen language", () => {
+		expect(localeSwitchPath("/en/login", "ko")).toBe("/ko/login");
+		expect(localeSwitchPath("/ko", "en")).toBe("/en");
+	});
+	it("leaves unprefixed and look-alike paths alone", () => {
+		expect(localeSwitchPath("/login", "ko")).toBe("/login");
+		expect(localeSwitchPath("/english/x", "ko")).toBe("/english/x");
 	});
 });
 

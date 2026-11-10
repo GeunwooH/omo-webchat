@@ -24,7 +24,15 @@ describe("LoginPage", () => {
   });
 
   function render(lang: Lang, setLang: (next: Lang) => void = () => undefined): void {
-    const value: I18nValue = { lang, setLang, t: (key, vars) => translate(lang, key, vars) };
+    const value: I18nValue = {
+      lang,
+      setLang,
+      t: (key, vars) => translate(lang, key, vars),
+      font: "system",
+      setFont: () => undefined,
+      fontSize: 13,
+      setFontSize: () => undefined,
+    };
     act(() => {
       root.render(
         <I18nContext.Provider value={value}>

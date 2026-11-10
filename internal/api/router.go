@@ -163,8 +163,15 @@ func (s *Server) staticHandler() http.Handler {
 			// here gives crawlers and no-JS clients the right document language.
 			index = bytes.Replace(index, []byte(`<html lang="en">`), []byte(`<html lang="ko">`), 1)
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		sum := sha256.Sum256(index)
+		tag := `"` + hex.EncodeToString(sum[:16]) + `"`
+		w.Header().Set("ETag", tag)
 		w.Header().Set("Cache-Control", "no-cache")
+		if r.Header.Get("If-None-Match") == tag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write(index)
 	})
 }
