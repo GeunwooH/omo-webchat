@@ -35,6 +35,16 @@ func TestStaticServesAppShellAndLocaleRoutes(t *testing.T) {
 	}
 }
 
+func TestStaticServesDocumentLanguageForLocalePrefix(t *testing.T) {
+	h := newStaticTestServer()
+	for target, want := range map[string]string{"/ko/login": "ko", "/ko": "ko", "/en/login": "en", "/login": "en", "/": "en"} {
+		rec := serveStatic(t, h, target, nil)
+		if !strings.Contains(rec.Body.String(), `<html lang="`+want+`">`) {
+			t.Fatalf("%s: want <html lang=%q> in the served shell", target, want)
+		}
+	}
+}
+
 func TestStaticReturnsRealNotFoundForMisses(t *testing.T) {
 	h := newStaticTestServer()
 	for _, target := range []string{"/robots.txt", "/assets/missing-abc123.js", "/assets/", "/assets", "/nonexistent", "/ko/missing.js"} {

@@ -2,6 +2,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -156,6 +157,11 @@ func (s *Server) staticHandler() http.Handler {
 		if err != nil {
 			http.NotFound(w, r)
 			return
+		}
+		if cleaned == "ko" || strings.HasPrefix(cleaned, "ko/") {
+			// The inline script also sets lang before first paint; serving it
+			// here gives crawlers and no-JS clients the right document language.
+			index = bytes.Replace(index, []byte(`<html lang="en">`), []byte(`<html lang="ko">`), 1)
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
